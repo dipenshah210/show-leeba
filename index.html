@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>LEEBA &middot; Hong Kong Show 2026</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="stylesheet" href="assets/shows.css">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-main">
+    <a class="brand" href="./" title="LEEBA">
+      <img id="logo" class="brand-logo" alt="LEEBA" hidden>
+      <span class="brand-mark" id="brandText">LEEBA</span>
+      <span class="brand-sub">HONG KONG SHOW &middot; HKCEC WANCHAI &middot; 16&ndash;20 SEPT</span>
+    </a>
+
+    <div class="search">
+      <span class="search-ico" aria-hidden="true">&#9906;</span>
+      <input id="q" type="search" placeholder="Search SKU, description, shape, certificate&hellip;" autocomplete="off" spellcheck="false">
+      <button id="qClear" class="icon-btn search-x" title="Clear" hidden>&times;</button>
+    </div>
+
+    <div class="hdr-actions">
+      <div class="viewtog" role="group" aria-label="View">
+        <button id="vGrid" class="vt is-on" title="Grid view">&#9635;</button>
+        <button id="vList" class="vt" title="List view">&#9776;</button>
+      </div>
+      <button id="costBtn" class="btn btn-lock" title="Internal cost view">&#128274;<span>COST</span></button>
+    </div>
+  </div>
+
+  <div class="hdr-bar">
+    <div class="chips" id="locChips">
+      <button class="chip is-on" data-loc="">ALL <b id="cAll">0</b></button>
+      <button class="chip" data-loc="D">D <b id="cD">0</b></button>
+      <button class="chip" data-loc="H">H <b id="cH">0</b></button>
+      <button class="chip" data-loc="I">I <b id="cI">0</b></button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="hdr-quick" id="quickBar">
+   <div class="qscroll">
+    <div class="chips" id="catChips"></div>
+    <span class="qsep"></span>
+    <div class="chips" id="toneChips"></div>
+    <span class="qsep"></span>
+    <select id="purity" class="qsel" title="Purity"><option value="">PURITY</option></select>
+    <select id="sort" class="qsel" title="Sort">
+      <option value="sku">SORT</option>
+      <option value="price-desc">PRICE &darr;</option>
+      <option value="price-asc">PRICE &uarr;</option>
+      <option value="ct-desc">CARAT &darr;</option>
+      <option value="ct-asc">CARAT &uarr;</option>
+      <option value="cat">CATEGORY</option>
+    </select>
+   </div>
+   <button id="moreFilt" class="qmore">MORE FILTERS <b id="filtN" hidden>0</b></button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <aside class="side" id="side">
+    <div class="side-head only-mobile">
+      <span>MORE FILTERS</span>
+      <button id="sideClose" class="icon-btn">&times;</button>
+    </div>
+
+    <div class="side-body">
+      <div class="f">
+        <label for="shape">SHAPE</label>
+        <select id="shape"><option value="">Any shape</option></select>
+      </div>
+
+      <div class="f">
+        <label>TOTAL CARAT</label>
+        <div class="pair">
+          <input id="ctMin" type="number" step="0.1" min="0" placeholder="min" inputmode="decimal">
+          <input id="ctMax" type="number" step="0.1" min="0" placeholder="max" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="f">
+        <label>PRICE (USD)</label>
+        <div class="pair">
+          <input id="prMin" type="number" step="100" min="0" placeholder="min" inputmode="numeric">
+          <input id="prMax" type="number" step="100" min="0" placeholder="max" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="f">
+        <label>GROSS WEIGHT (gm)</label>
+        <div class="pair">
+          <input id="gwMin" type="number" step="0.5" min="0" placeholder="min" inputmode="decimal">
+          <input id="gwMax" type="number" step="0.5" min="0" placeholder="max" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="f">
+        <label>AVAILABILITY</label>
+        <div class="chips wrap" id="availChips">
+          <button class="chip is-on" data-avail="">ANY</button>
+          <button class="chip" data-avail="AVAILABLE">AVAILABLE</button>
+          <button class="chip" data-avail="HOLD">HOLD</button>
+          <button class="chip" data-avail="SOLD">SOLD</button>
+          <button class="chip" data-avail="MEMO OUT">MEMO</button>
+        </div>
+      </div>
+
+      <button id="reset" class="btn btn-ghost wide">RESET FILTERS</button>
+
+      <div class="side-actions">
+        <button id="selAll" class="btn btn-ghost wide">SELECT ALL VISIBLE</button>
+        <button id="expAll" class="btn btn-ghost wide">EXPORT ALL VISIBLE</button>
+      </div>
+
+      <p class="side-note">Availability is saved on this device only. Export a selection to share it.</p>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="empty" hidden>No pieces match these filters.</div>
+    <div class="main-foot" id="more" hidden><button id="moreBtn" class="btn btn-ghost">SHOW MORE</button></div>
+  </main>
+
+</div>
+
+<div class="selbar" id="selbar" hidden>
+  <span class="selbar-count"><b id="selN">0</b> SELECTED &middot; <span id="selVal"></span></span>
+  <div class="selbar-actions">
+    <button id="selClear" class="btn btn-ghost">CLEAR</button>
+    <button id="selExport" class="btn btn-gold">EXPORT SELECTED</button>
+  </div>
+</div>
+
+<!-- ============================================================ detail -->
+<div class="modal" id="detail" hidden>
+  <div class="modal-card detail-card">
+    <button class="icon-btn modal-x" data-close title="Close">&times;</button>
+    <div class="detail-grid">
+
+      <div class="detail-img">
+        <img id="dImg" alt="">
+        <div class="thumbs" id="dThumbs"></div>
+      </div>
+
+      <div class="detail-info">
+        <div class="d-head">
+          <h2 id="dSku"></h2>
+          <span class="badge" id="dLoc"></span>
+          <span class="badge badge-cat" id="dCat"></span>
+        </div>
+        <p class="d-desc" id="dDesc"></p>
+
+        <div class="d-price" id="dPrice"></div>
+
+        <h3 class="d-h3">SPECIFICATIONS</h3>
+        <div class="d-keys" id="dKeys"></div>
+
+        <h3 class="d-h3">DIAMOND DETAILS</h3>
+        <div class="tbl-wrap"><table class="dna" id="dDna"></table></div>
+
+        <div class="d-foot">
+          <div class="d-avail">
+            <label>AVAILABILITY</label>
+            <div class="chips wrap" id="dAvail">
+              <button class="chip" data-set="AVAILABLE">AVAILABLE</button>
+              <button class="chip" data-set="HOLD">HOLD</button>
+              <button class="chip" data-set="SOLD">SOLD</button>
+              <button class="chip" data-set="MEMO OUT">MEMO OUT</button>
+            </div>
+          </div>
+          <button id="dPick" class="btn btn-gold">ADD TO SELECTION</button>
+        </div>
+      </div>
+
+    </div>
+    <button class="navarrow prev" id="dPrev" title="Previous">&#8249;</button>
+    <button class="navarrow next" id="dNext" title="Next">&#8250;</button>
+  </div>
+</div>
+
+<!-- ========================================================== lightbox -->
+<div class="modal lightbox" id="lightbox" hidden>
+  <button class="icon-btn modal-x" data-close>&times;</button>
+  <img id="lbImg" alt="">
+</div>
+
+<!-- ============================================================ cost -->
+<div class="modal" id="unlock" hidden>
+  <div class="modal-card unlock-card">
+    <button class="icon-btn modal-x" data-close>&times;</button>
+    <h2 class="u-title">INTERNAL COST VIEW</h2>
+    <p class="u-note">Selling prices are on show to everyone. Cost, margin and the pricing
+      build-up are encrypted and open only with the internal passcode &mdash; keep this view
+      closed when a customer is at the screen.</p>
+    <form id="unlockForm" autocomplete="off">
+      <input id="pass" type="password" placeholder="Internal passcode" autocomplete="off">
+      <label class="u-keep"><input type="checkbox" id="keep" checked> Stay open in this tab</label>
+      <div class="u-err" id="uErr" hidden>Wrong passcode.</div>
+      <button class="btn btn-gold wide" id="uGo" type="submit">OPEN COST VIEW</button>
+    </form>
+    <button id="relock" class="btn btn-ghost wide" hidden>CLOSE COST VIEW</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="config.js"></script>
+<script src="assets/shows.js"></script>
+</body>
+</html>
