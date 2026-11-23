@@ -99,7 +99,7 @@ window.LEEBA_CONFIG = {
     /* Currencies the stock script accepts. Others (e.g. BHD) are saved as their
        AED value with "Paid BHD ..." in the remark. The new LEEBA SHOWS script
        takes any currency: when switching to it, list them all here. */
-    CURRENCIES: ["AED", "USD", "BHD", "SAR", "QAR", "OMR", "KWD"]
+    CURRENCIES: ["AED", "USD", "BHD", "HKD", "SAR", "QAR", "OMR", "KWD"]
   },
 
   /* The staff exhibitions pages (shows.leeba.co/admin/) talk to this:

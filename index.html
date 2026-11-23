@@ -6,7 +6,7 @@
 <title>LEEBA — Jewellery Arabia Bahrain</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://wsrv.nl" crossorigin>
-<link rel="stylesheet" href="assets/shows.css?v=202611241100">
+<link rel="stylesheet" href="assets/shows.css?v=202611231500">
 </head>
 <body>
 
@@ -87,7 +87,7 @@
       <div class="f"><label>DIAMOND SHAPE</label><div class="chips wrap" id="fShape"></div></div>
 
       <div class="f">
-        <label>PRICE (AED)</label>
+        <label id="prLabel">PRICE (AED)</label>
         <div class="chips wrap" id="fPrice"></div>
         <div class="pair">
           <input id="prMin" type="number" step="500" min="0" placeholder="min" inputmode="numeric">
@@ -162,7 +162,7 @@
     <h2 class="u-title">EXPORT TO EXCEL</h2>
     <p class="u-note" id="expWhat"></p>
     <label class="u-keep"><input type="checkbox" id="exPhotos" checked> Photos in the sheet</label>
-    <label class="u-keep"><input type="checkbox" id="exPrice" checked> Selling price (AED + USD)</label>
+    <label class="u-keep"><input type="checkbox" id="exPrice" checked><span id="exPriceLbl"> Selling price (AED + USD)</span></label>
     <label class="u-keep staff-only"><input type="checkbox" id="exOwner"> Owner column + owner tally sheet <em>(internal)</em></label>
     <label class="u-keep" id="exCostRow" hidden><input type="checkbox" id="exCost"> Cost + markup <em>(internal)</em></label>
     <p class="exp-prog" id="expProg" hidden></p>
@@ -319,8 +319,8 @@
 
 <!-- shipped with the site so exports still work when the hall wifi drops -->
 <script src="assets/exceljs.min.js"></script>
-<script src="config.js?v=202611241100"></script>
-<script src="assets/shows.js?v=202611241100"></script>
+<script src="config.js?v=202611231500"></script>
+<script src="assets/shows.js?v=202611231500"></script>
 
 </body>
 </html>

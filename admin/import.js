@@ -435,9 +435,15 @@ function build(opts) {
   });
 
   var sh = opts.show || {};
+  var DISPLAYABLE = ["AED", "USD", "BHD", "SAR", "QAR", "OMR", "KWD"];
   var catalog = { exhibition: "LEEBA Jewels - " + [sh.name, sh.venue, sh.dates].filter(Boolean).join(", "),
                   strap: [sh.name, sh.venue, sh.datesShort].filter(Boolean).join(" · "), tag: sh.tag, mode: "show", currency: "USD",
                   saleCurrency: sh.currency && sh.currency !== "AED" ? sh.currency : undefined,
+                  /* prices on the page: the local currency where it is pegged to the dollar
+                     (AED, BHD, SAR ...); in dollars elsewhere (Hong Kong), where the local
+                     currency is still taken at the sale form */
+                  displayCurrency: sh.display || (DISPLAYABLE.indexOf(sh.currency || "AED") >= 0 ? (sh.currency || "AED") : "USD"),
+                  saleCurrencies: DISPLAYABLE.indexOf(sh.currency || "AED") >= 0 ? undefined : ["USD", sh.currency, "AED"],
                   built: new Date().toISOString().slice(0, 16).replace("T", " "), count: products.length,
                   products: products.map(function (p) { var o = Object.assign({}, p); delete o._how; delete o._owner_how; return o; }) };
   return { catalog: catalog, products: products, cost: cost, images: newImages, report: rep };

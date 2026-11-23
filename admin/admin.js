@@ -16,7 +16,7 @@ var API = (function () {
 })();
 var SITE = location.origin + location.pathname.replace(/admin\/?(index\.html)?$/, "");
 var REPO_TREE = "https://api.github.com/repos/" + (CFG.SITE_REPO || "dipenshah210/show-leeba") + "/git/trees/main?recursive=1";
-var RATES = { AED: 1, USD: 3.6725, BHD: 9.7406, SAR: 0.9793, QAR: 1.0089, OMR: 9.5389, KWD: 11.95, EUR: 4.0, GBP: 4.7, INR: 0.0435 };
+var RATES = { AED: 1, USD: 3.6725, BHD: 9.7406, SAR: 0.9793, QAR: 1.0089, OMR: 9.5389, KWD: 11.95, HKD: 0.4708, EUR: 4.0, GBP: 4.7, INR: 0.0435 };
 var ORDER = ["RING", "EARRING", "BRACELET", "ETERNITY BAND", "NECKLACE", "PENDANT", "BANGLE", "CHAIN"];
 
 var me = null, shows = [], cache = {};
@@ -554,7 +554,7 @@ function viewNew(tag) {
   if (!shows.length) { app('<div class="loading">Loading…</div>'); return loadShows().then(function () { viewNew(tag); }).catch(fail); }
   var base = tag ? shows.filter(function (s) { return s.tag === tag; })[0] : null;
   var pr = {}; try { pr = base && base.pricing ? JSON.parse(base.pricing) : {}; } catch (e) {}
-  W = { list: null, files: [], show: base ? { name: base.name, venue: base.venue, city: base.city, start: base.start, end: base.end, tag: base.tag, currency: base.currency || "AED", rate: base.aed_per_usd || 3.6725, notes: base.notes || "" }
+  W = { list: null, files: [], show: base ? { name: base.name, venue: base.venue, city: base.city, start: base.start, end: base.end, tag: base.tag, currency: base.currency || "AED", display: base.display || "", rate: base.aed_per_usd || 3.6725, notes: base.notes || "" }
                                        : { currency: "AED", rate: 3.6725 },
         pricing: pr.mode ? pr : { mode: "mult", mult: 3.5, colCur: "USD", outCur: "USD", ownerMult: {} }, owners: ownerRules(), result: null, editing: !!base };
   var S = W.show;
@@ -568,6 +568,7 @@ function viewNew(tag) {
       '<label>LAST DAY<input id="sEnd" type="date" value="' + esc(S.end || "") + '"></label>' +
       '<label>SHORT CODE <em>for files and tabs</em><input id="sTag" value="' + esc(S.tag || "") + '"' + (base ? " disabled" : "") + '></label>' +
       '<label>LOCAL CURRENCY<select id="sCur">' + Object.keys(RATES).map(function (c) { return '<option' + (c === S.currency ? " selected" : "") + '>' + c + '</option>'; }).join("") + '</select></label>' +
+      '<label>SHOW PRICES IN<select id="sDisp">' + ["AUTO", "AED", "USD", "BHD", "SAR", "QAR", "OMR", "KWD"].map(function (c) { return '<option' + (c === (S.display || "AUTO") ? " selected" : "") + '>' + c + '</option>'; }).join("") + '</select></label>' +
       '<label>AED PER USD<input id="sRate" type="number" step="0.0001" value="' + esc(S.rate) + '"></label>' +
       '<label style="grid-column:1/-1">NOTES <em>optional</em><input id="sNotes" value="' + esc(S.notes || "") + '" placeholder="Booth number, team, anything to remember"></label>' +
     '</div></div></section>' +
@@ -721,7 +722,7 @@ function readShowForm() {
   var S = W.show;
   S.name = $("#sName").value.trim(); S.venue = $("#sVenue").value.trim(); S.city = $("#sCity").value.trim();
   S.start = $("#sStart").value; S.end = $("#sEnd").value; S.tag = up($("#sTag").value).replace(/[^A-Z0-9-]+/g, "-");
-  S.currency = $("#sCur").value; S.rate = parseFloat($("#sRate").value) || 3.6725; S.notes = $("#sNotes").value.trim();
+  S.currency = $("#sCur").value; S.display = $("#sDisp").value === "AUTO" ? "" : $("#sDisp").value; S.rate = parseFloat($("#sRate").value) || 3.6725; S.notes = $("#sNotes").value.trim();
   var d1 = S.start ? new Date(S.start + "T12:00:00") : null, d2 = S.end ? new Date(S.end + "T12:00:00") : null;
   var fmt = function (d, o) { return d.toLocaleDateString("en-GB", o); };
   S.dates = d1 ? fmt(d1, { day: "numeric", month: "long", year: "numeric" }) + (d2 ? " – " + fmt(d2, { day: "numeric", month: "long", year: "numeric" }) : "") : "";

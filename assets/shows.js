@@ -170,14 +170,41 @@ function wasOf(p) { return p.SALE_PRICE_USD ? p.SELLING_PRICE_USD : null; }
 function offerOf(p) { return p.SALE_PRICE_USD ? (p.SALE_TYPE || "SALE") : ""; }
 /* Prices are shown in dirhams, with dollars small alongside. The catalogue is priced
    in USD; AED is the fixed peg. Filters, collections and totals all work in AED. */
-var RATE = CFG.AED_PER_USD || 3.6725;
+var PER_USD = { USD: 1, AED: 3.6725, BHD: 0.376, SAR: 3.75, QAR: 3.64, OMR: 0.3845, KWD: 0.307, HKD: 7.8 };
+/* DISP is the currency prices are shown in. It comes from the catalogue
+   (displayCurrency): BHD in Bahrain, USD in Hong Kong, AED by default. The names
+   aedOf / aed() are kept from when it was always dirhams - they now mean
+   "in the display currency". */
+var DISP = "AED", RATE = CFG.AED_PER_USD || 3.6725;
+function setDisplay(c) {
+  c = String(c || "AED").toUpperCase();
+  if (!PER_USD[c]) c = "AED";
+  DISP = c; RATE = c === "AED" ? (CFG.AED_PER_USD || 3.6725) : PER_USD[c];
+}
+/* an AED amount (config collections are written in AED) in the display currency,
+   rounded to a tidy figure */
+function fromAED(n) { return DISP === "AED" ? n : nice(n / (CFG.AED_PER_USD || 3.6725) * RATE); }
+function nice(v) {
+  if (v < 10) return Math.round(v);
+  var p = Math.pow(10, Math.floor(Math.log10(v)) - 1);
+  var r = Math.round(v / p) * p, d = r / Math.pow(10, Math.floor(Math.log10(r)));
+  var best = [1, 1.5, 2, 2.5, 3, 4, 5, 7.5, 10].reduce(function (b, x) { return Math.abs(x - d) < Math.abs(b - d) ? x : b; }, 1);
+  return best * Math.pow(10, Math.floor(Math.log10(r)));
+}
 function aedOf(p) { var u = sellOf(p); return u ? Math.round(u * RATE) : null; }
 function wasAED(p) { var u = wasOf(p); return u ? Math.round(u * RATE) : null; }
 function aed(n) {
   if (n === null || n === undefined || isNaN(n)) return "";
-  return "AED " + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  var v = Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return DISP === "USD" ? "$" + v : DISP + " " + v;
 }
 function kAED(n) { return n >= 1000 ? (n / 1000) + "K" : String(n); }
+/* labels on the page that name the price currency */
+function showCurrencyLabels() {
+  var l = $("#prLabel"); if (l) l.textContent = "PRICE (" + DISP + ")";
+  var e = $("#exPriceLbl"); if (e) e.textContent = " Selling price (" + DISP + (DISP === "USD" ? "" : " + USD") + ")";
+}
+function kCur(n) { return (DISP === "USD" ? "$" : DISP + " ") + kAED(n); }
 function costOf(p) { return cost && cost[p.SKU] ? cost[p.SKU] : null; }
 /* What this piece's status is right now. A change made here that the server has
    not confirmed yet wins, so the button responds instantly; then the server's
@@ -482,7 +509,6 @@ function prettyDay(d) {
 }
 /* Sale currencies. Rates are per 1 USD (all of these are pegged to the dollar).
    The first one in SALE_CURRENCIES (or the catalogue's saleCurrency) is the default. */
-var PER_USD = { USD: 1, AED: 3.6725, BHD: 0.376, SAR: 3.75, QAR: 3.64, OMR: 0.3845, KWD: 0.307 };
 var SALE_CURS = (CFG.SALE_CURRENCIES || ["AED", "USD", "BHD"]).slice();
 function curMoney(n, cur) {
   if (n === null || n === undefined || isNaN(n)) return "";
@@ -533,11 +559,14 @@ function boot() {
       if (j.strap) { $("#brandSub").innerHTML = esc(j.strap); document.title = "LEEBA \u2014 " + j.strap; }
       if (j.exhibition) SHOW_NAME = j.exhibition;
       if (j.tag) TAG = j.tag;
+      setDisplay(j.displayCurrency);
+      if (j.saleCurrencies && j.saleCurrencies.length) SALE_CURS = j.saleCurrencies.slice();
       if (j.saleCurrency) {          // the show's own currency comes first in the sale form
         if (SALE_CURS.indexOf(j.saleCurrency) >= 0) SALE_CURS.splice(SALE_CURS.indexOf(j.saleCurrency), 1);
         SALE_CURS.unshift(j.saleCurrency);
       }
       ALL = j.products || [];
+      showCurrencyLabels();
       buildFilters();
       buildCollections();
       apply();
@@ -683,16 +712,17 @@ function buildPriceBands() {
   var prices = ALL.map(aedOf).filter(function (v) { return v !== null && !isNaN(v); });
   if (!prices.length) return;
   var max = Math.max.apply(null, prices);
-  var steps = [2000, 5000, 10000, 20000, 50000, 100000, 200000];
+  var steps = [2000, 5000, 10000, 20000, 50000, 100000, 200000].map(fromAED)
+               .filter(function (v, i, a) { return a.indexOf(v) === i; });
   BANDS = [];
   var prev = null;
   steps.forEach(function (s) {
     if (prev !== null && prev >= max) return;
-    BANDS.push({ min: prev, max: s, label: prev === null ? "under AED " + kAED(s)
-                                                         : "AED " + kAED(prev) + "-" + kAED(s) });
+    BANDS.push({ min: prev, max: s, label: prev === null ? "under " + kCur(s)
+                                                         : kCur(prev) + "-" + kAED(s) });
     prev = s;
   });
-  if (prev !== null && max > prev) BANDS.push({ min: prev, max: null, label: "AED " + kAED(prev) + "+" });
+  if (prev !== null && max > prev) BANDS.push({ min: prev, max: null, label: kCur(prev) + "+" });
 
   $("#fPrice").innerHTML = BANDS.map(function (b, i) {
     var n = ALL.filter(function (p) {
@@ -724,7 +754,14 @@ function syncPriceBands() {
 /* ------------------------------------------------------- collections */
 var COLL = [];
 function buildCollections() {
-  var defs = CFG.COLLECTIONS || [];
+  var defs = (CFG.COLLECTIONS || []).map(function (d) {
+    if (DISP === "AED") return d;
+    var o = Object.assign({}, d);
+    if (d.min !== undefined) o.min = fromAED(d.min);
+    if (d.max !== undefined) o.max = fromAED(d.max);
+    o.label = String(d.label).replace(/AED ([\d,]+)/, function (m, x) { var v = fromAED(+x.replace(/,/g, "")).toLocaleString("en-US"); return DISP === "USD" ? "$" + v : DISP + " " + v; });
+    return o;
+  });
   COLL = defs.map(function (d) {
     var n = ALL.filter(function (p) { return matchesColl(p, d); }).length;
     return { def: d, n: n };
@@ -829,7 +866,7 @@ function activeBar() {
   filt.purities.forEach(function (v) { push("purities", v, v + "K"); });
   filt.shapes.forEach(function (v) { push("shapes", v, v); });
   if (filt.prMin !== null || filt.prMax !== null) {
-    push("price", "", (filt.prMin !== null ? aed(filt.prMin) : "AED 0") + " - " +
+    push("price", "", (filt.prMin !== null ? aed(filt.prMin) : aed(0)) + " - " +
                       (filt.prMax !== null ? aed(filt.prMax) : "any"));
   }
   if (filt.ctMin !== null || filt.ctMax !== null) {
@@ -945,10 +982,11 @@ function searchTerms(q) {
   return q.toLowerCase().split(/[\s,;]+/).filter(Boolean).map(function (w) {
     var m, unit;
     // price: aed5000, 5000aed, $1500, 1500usd
-    if ((m = w.match(/^(?:aed|\$|usd)(\d+(?:\.\d+)?)k?$/) || w.match(/^(\d+(?:\.\d+)?)k?(aed|usd)$/))) {
-      var amt = parseFloat(m[1]) * (/k(aed|usd)?$/.test(w) ? 1000 : 1);
-      var usd = /\$|usd/.test(w);
-      return function (p) { var v = usd ? sellOf(p) : aedOf(p); return v && Math.abs(v - amt) <= amt * 0.1; };
+    if ((m = w.match(/^(aed|\$|usd|bhd|hkd|sar|qar|omr|kwd)(\d+(?:\.\d+)?)k?$/) || w.match(/^()(\d+(?:\.\d+)?)k?(aed|usd|bhd|hkd|sar|qar|omr|kwd)$/))) {
+      var cur = (m[1] || m[3]).replace("$", "usd").toUpperCase();
+      var amt = parseFloat(m[2]) * (/k(aed|usd|bhd|hkd|sar|qar|omr|kwd)?$/.test(w) ? 1000 : 1);
+      var usdAmt = amt / PER_USD[cur];
+      return function (p) { var v = sellOf(p); return v && Math.abs(v - usdAmt) <= usdAmt * 0.1; };
     }
     if ((m = w.match(/^(\d*\.?\d+)-(\d*\.?\d+)(ct|cts|carat|g|gm|gms|gr|grm)?$/))) {
       var a = parseFloat(m[1]), b = parseFloat(m[2]); unit = m[3] || "";
@@ -1092,7 +1130,7 @@ function cardHTML(p) {
       '</div>' +
       '<div class="card-price">' +
         '<span class="amt">' + (sv ? (wasOf(p) ? '<s class="was">' + aed(wasAED(p)) + '</s>' : "") +
-                                     aed(aedOf(p)) + ' <small class="usd">' + money(sv) + '</small>'
+                                     aed(aedOf(p)) + (DISP === "USD" ? "" : ' <small class="usd">' + money(sv) + '</small>')
                                    : '<em class="por">PRICE ON REQUEST</em>') + '</span>' +
         (p.SELL_PER_CT_USD ? '<span class="perct">' + aed(Math.round(p.SELL_PER_CT_USD * RATE)) + '/CT</span>' : "") +
       '</div>' +
@@ -1158,7 +1196,7 @@ function openDetail(sku) {
   var off = offerOf(p);
   band.push('<div class="big"><span>' + (off ? off + " PRICE" : "SELLING PRICE") + '</span><b>' +
             (sellOf(p) ? aed(aedOf(p)) : "ON REQUEST") + '</b>' +
-            (sellOf(p) ? '<em class="usd">' + money(sellOf(p)) + '</em>' : "") + '</div>');
+            (sellOf(p) && DISP !== "USD" ? '<em class="usd">' + money(sellOf(p)) + '</em>' : "") + '</div>');
   if (off) band.push('<div class="d-offer"><span>NORMAL PRICE</span><b><s>' + aed(wasAED(p)) + '</s></b></div>');
   if (p.SELL_PER_CT_USD) band.push('<div><span>PER CARAT</span><b>' +
             aed(Math.round(p.SELL_PER_CT_USD * RATE)) + '</b></div>');
@@ -1502,7 +1540,7 @@ function exportRows(picked, label, opts) {
     if (opts.owner) C.push(["Owner", 13, function (p) { return ownerOf(p); }]);
     if (opts.owner || label === "stock-tally") C.push(["Status", 11, function (p) { return availOf(p); }]);
     if (opts.price) C.push(
-      ["Price\n(AED)", 13, function (p) { return aedOf(p) || "On request"; }, "aed"],
+      ["Price\n(" + DISP + ")", 13, function (p) { return aedOf(p) || "On request"; }, "aed"],
       ["Price\n(USD)", 12, function (p) { return sellOf(p) ? Math.round(sellOf(p)) : ""; }, "usd"]
     );
     if (opts.cost) C.push(
@@ -1659,7 +1697,7 @@ function exportRows(picked, label, opts) {
 function exportCsv(picked) {
   var head = ["SR", "SKU", "CATEGORY", "DESCRIPTION", "PURITY", "TONE",
               "GROSS WT", "NET GOLD", "TOTAL CT", "PCS", "QUALITY", "CERT",
-              "AVAILABILITY", "SELLING PRICE (AED)", "SELLING PRICE (USD)", "OFFER", "NORMAL PRICE (AED)"];
+              "AVAILABILITY", "SELLING PRICE (" + DISP + ")", "SELLING PRICE (USD)", "OFFER", "NORMAL PRICE (" + DISP + ")"];
   if (HAS_LOC) head.splice(2, 0, "TRAY");
   if (cost) head.push("COST", "MARKUP");
   var lines = [head.join(",")];
@@ -1698,8 +1736,10 @@ function openSale(sku) {
   var list = sellOf(p);
   $("#saleSku").textContent = sku;
   $("#saleDesc").textContent = [p.CATEGORY, p.DESCRIPTION].filter(Boolean).join(" · ");
-  $("#saleList").textContent = list ? (offerOf(p) ? offerOf(p) + " " : "List ") + aed(aedOf(p)) + "  (" + money(list) +
-    (SALE_CURS[0] !== "AED" && SALE_CURS[0] !== "USD" ? " · " + curMoney(Math.round(inCur(list, SALE_CURS[0])), SALE_CURS[0]) : "") + ")" +
+  $("#saleList").textContent = list ? (offerOf(p) ? offerOf(p) + " " : "List ") + aed(aedOf(p)) +
+    [DISP !== "USD" ? money(list) : "", SALE_CURS.filter(function (c) { return c !== DISP && c !== "USD"; })
+       .slice(0, 2).map(function (c) { return curMoney(Math.round(inCur(list, c)), c); }).join(" · ")]
+      .filter(Boolean).map(function (x, i, a) { return (i ? " · " : "  (") + x + (i === a.length - 1 ? ")" : ""); }).join("") +
     (wasOf(p) ? "  -  normal " + aed(wasAED(p)) : "") : "";
   $("#saleClient").value = "";
   $("#salePhone").value = "";
@@ -1963,7 +2003,7 @@ function exportSales() {
   }
 
   var s3 = wb.addWorksheet("STOCK");
-  s3.addRow(["SKU", "CATEGORY", "DESCRIPTION", "STATUS", "LIST PRICE (AED)", "LIST PRICE (USD)", "SOLD TO", "SOLD FOR", "SOLD BY"]);
+  s3.addRow(["SKU", "CATEGORY", "DESCRIPTION", "STATUS", "LIST PRICE (" + DISP + ")", "LIST PRICE (USD)", "SOLD TO", "SOLD FOR", "SOLD BY"]);
   hdr(s3, 1);
   ALL.slice().sort(function (a, b) { return a.SKU.localeCompare(b.SKU); }).forEach(function (p) {
     var st = availOf(p), sl = st === "SOLD" ? saleOf(p.SKU) : null;
