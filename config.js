@@ -10,16 +10,104 @@ window.LEEBA_CONFIG = {
 
   /* Where the product photos live.
      Local folder shipped with this site:      "images/"
-     Or point it at S3 / CloudFront, e.g.:     "https://leeba-media.s3.ap-south-1.amazonaws.com/hk2026/"
+     Or point it at S3 / CloudFront, e.g.:     "https://leeba-media.s3.ap-south-1.amazonaws.com/sharjah2026/"
      Must end with a slash. */
   IMAGE_BASE: "images/",
 
   /* Data files (relative to index.html). */
   CATALOG:     "data/catalog.json",
-  PRICES_COST: "data/prices.cost.enc.json",
 
-  /* Show title, used in exported files. */
-  SHOW_NAME: "LEEBA - Hong Kong Show 2026, HKCEC Wanchai",
+  /* Prices are shown in AED with USD small beside them. The catalogue is priced in
+     USD; this converts. 3.6725 is the dirham's fixed peg to the dollar. */
+  AED_PER_USD: 3.6725,
+
+  /* Shown under the logo in the header. */
+  SHOW_STRAP: "JEWELLERY ARABIA &middot; EXHIBITION WORLD BAHRAIN &middot; FROM 24 NOV 2026",
+
+  /* Show title, used in exported files and the export file name. */
+  SHOW_NAME: "LEEBA Jewels - Jewellery Arabia, Exhibition World Bahrain, from 24 November 2026",
+  EXPORT_TAG: "JEWELLERY-ARABIA-BAHRAIN",
+
+  /* ----------------------------------------------------------------
+     READY-MADE COLLECTIONS
+     The pill row under the header. Tap one and the list filters to it -
+     made for putting a budget in front of a client in one move.
+
+       label  what the pill says
+       cat    category to limit to, or leave out for all categories
+       max    price ceiling in AED (optional)
+       min    price floor in AED (optional)
+       sale   true = only pieces with a SALE or PROMO price
+       tray   a display tray name, e.g. "PROMO TRAY"
+
+     Pick a category above and only that category's collections show;
+     with ALL, every collection shows.
+
+     Counts are worked out from the live data every time the page loads,
+     and any collection that matches nothing is hidden automatically - so
+     these keep working when the stock list is swapped. Add, remove or
+     re-order freely; the row scrolls.
+  ---------------------------------------------------------------- */
+  COLLECTIONS: [
+    { label: "On sale",                    sale: true },
+    { label: "Promo tray",                 tray: "PROMO TRAY" },
+    { label: "Under AED 2,000",            max: 2000 },
+    { label: "Under AED 5,000",            max: 5000 },
+    { label: "Under AED 10,000",           max: 10000 },
+    { label: "Rings under AED 5,000",      cat: "RING",          max: 5000 },
+    { label: "Rings under AED 10,000",     cat: "RING",          max: 10000 },
+    { label: "Rings under AED 20,000",     cat: "RING",          max: 20000 },
+    { label: "Rings AED 50,000+",          cat: "RING",          min: 50000 },
+    { label: "Earrings under AED 5,000",   cat: "EARRING",       max: 5000 },
+    { label: "Earrings under AED 10,000",  cat: "EARRING",       max: 10000 },
+    { label: "Earrings under AED 20,000",  cat: "EARRING",       max: 20000 },
+    { label: "Bracelets under AED 15,000", cat: "BRACELET",      max: 15000 },
+    { label: "Bracelets under AED 25,000", cat: "BRACELET",      max: 25000 },
+    { label: "Bracelets under AED 40,000", cat: "BRACELET",      max: 40000 },
+    { label: "Bands under AED 5,000",      cat: "ETERNITY BAND", max: 5000 },
+    { label: "Bands under AED 8,000",      cat: "ETERNITY BAND", max: 8000 },
+    { label: "Bands under AED 12,000",     cat: "ETERNITY BAND", max: 12000 },
+    { label: "Pendants under AED 5,000",   cat: "PENDANT",       max: 5000 },
+    { label: "Pendants under AED 10,000",  cat: "PENDANT",       max: 10000 },
+    { label: "Pendants under AED 15,000",  cat: "PENDANT",       max: 15000 },
+    { label: "Necklaces under AED 40,000", cat: "NECKLACE",      max: 40000 },
+    { label: "Necklaces under AED 75,000", cat: "NECKLACE",      max: 75000 },
+    { label: "Necklaces AED 150,000+",     cat: "NECKLACE",      min: 150000 },
+    { label: "Bangles",                    cat: "BANGLE" },
+    { label: "Statement AED 100,000+",     min: 100000 }
+  ],
+
+  /* ----------------------------------------------------------------
+     LIVE STOCK CONTROL
+     Leave URL empty and the page behaves as before: AVAILABLE / HOLD /
+     SOLD / MEMO OUT is remembered only in the browser that set it.
+
+     Fill URL in and stock goes live - mark a piece SOLD at the stand and
+     every other phone, tablet and laptop showing the page picks it up
+     within POLL_SECONDS, customers included. Changing it needs a staff
+     code, which is checked on the server on every write and never appears
+     anywhere in this site's files.
+
+     URL is the /exec address of the web app built from stock-api.gs, the
+     file sent alongside this site. That is a new, stand-alone script on its
+     own Google Sheet - nothing to do with the one behind live.leeba.co. The
+     five-minute setup is written at the top of it.
+  ---------------------------------------------------------------- */
+  STOCK: {
+    URL: "https://script.google.com/macros/s/AKfycbxVq5t8yCAv8IEsx00Xqbpj2iso9QxXv2ucUek6APssoPLy2ENU57E99SNQtHZg3lVh/exec",
+    POLL_SECONDS: 25,
+    /* Currencies the stock script accepts. Others (e.g. BHD) are saved as their
+       AED value with "Paid BHD ..." in the remark. The new LEEBA SHOWS script
+       takes any currency: when switching to it, list them all here. */
+    CURRENCIES: ["AED", "USD", "BHD", "SAR", "QAR", "OMR", "KWD"]
+  },
+
+  /* The staff exhibitions pages (shows.leeba.co/admin/) talk to this:
+     the /exec address of the LEEBA SHOWS script. Empty = not set up yet. */
+  SHOWS_API: "https://script.google.com/macros/s/AKfycbxVq5t8yCAv8IEsx00Xqbpj2iso9QxXv2ucUek6APssoPLy2ENU57E99SNQtHZg3lVh/exec",
+
+  /* The GitHub repository this site is published from (used by the staff pages). */
+  SITE_REPO: "dipenshah210/show-leeba",
 
   /* Cards rendered per batch while scrolling. */
   PAGE_SIZE: 120
