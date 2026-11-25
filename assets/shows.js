@@ -1299,12 +1299,16 @@ function stepDetail(dir) {
 /* Stock tally by owner and category - for the daily count at the booth.
    IN STOCK = everything not SOLD (available + hold + memo out). */
 function tallyData(list) {
-  var cats = [], owners = [], m = {}, sum = {};
+  var cats = [], owners = [], m = {}, sum = {}, cs = {};
   list.forEach(function (p) {
     var o = ownerOf(p), c = p.CATEGORY || "OTHER", st = availOf(p);
     if (cats.indexOf(c) < 0) cats.push(c);
     if (owners.indexOf(o) < 0) owners.push(o);
-    var k = o + "|" + c; m[k] = m[k] || { all: 0, inn: 0 }; m[k].all++; if (st !== "SOLD") m[k].inn++;
+    var k = o + "|" + c; m[k] = m[k] || { all: 0, inn: 0, sold: 0 }; m[k].all++; if (st !== "SOLD") m[k].inn++; else m[k].sold++;
+    var q = cs[c] = cs[c] || { all: 0, sold: 0, hold: 0, memo: 0, avail: 0, val: 0, soldVal: 0 };
+    q.all++;
+    if (st === "SOLD") { q.sold++; q.soldVal += aedOf(p) || 0; }
+    else { if (st === "HOLD") q.hold++; else if (st === "MEMO OUT") q.memo++; else q.avail++; q.val += aedOf(p) || 0; }
     var s = sum[o] = sum[o] || { all: 0, sold: 0, hold: 0, memo: 0, avail: 0, val: 0, soldVal: 0, ct: 0, gw: 0, nw: 0 };
     s.all++;
     if (st !== "SOLD") { s.ct += p.TOTAL_CT || 0; s.gw += p.GROSS_WT_GM || 0; s.nw += p.NET_GOLD_WT_GM || 0; }
@@ -1314,7 +1318,42 @@ function tallyData(list) {
   var order = ["RING", "EARRING", "BRACELET", "ETERNITY BAND", "NECKLACE", "PENDANT", "BANGLE", "CHAIN"];
   cats.sort(function (a, b) { return (order.indexOf(a) + 99) % 99 - (order.indexOf(b) + 99) % 99 || (a < b ? -1 : 1); });
   owners.sort(function (a, b) { return (a !== "LEEBA") - (b !== "LEEBA") || (a < b ? -1 : 1); });
-  return { cats: cats, owners: owners, m: m, sum: sum };
+  return { cats: cats, owners: owners, m: m, sum: sum, cs: cs };
+}
+/* every category with its status: how many in total, available, hold, memo, sold */
+function catStatusHtml(d) {
+  var H = ['<h4>STATUS BY CATEGORY</h4><table class="tally-t"><thead><tr><th>CATEGORY</th><th>TOTAL</th><th>AVAILABLE</th>' +
+           '<th>HOLD</th><th>MEMO</th><th>SOLD</th><th>SOLD %</th><th>IN-STOCK VALUE</th><th>SOLD VALUE</th></tr></thead><tbody>'];
+  var t = { all: 0, sold: 0, hold: 0, memo: 0, avail: 0, val: 0, soldVal: 0 };
+  d.cats.forEach(function (c) {
+    var q = d.cs[c]; Object.keys(t).forEach(function (k) { t[k] += q[k]; });
+    H.push('<tr><td>' + esc(c) + '</td><td>' + q.all + '</td><td>' + q.avail + '</td><td>' + q.hold + '</td><td>' + q.memo +
+           '</td><td><b>' + q.sold + '</b></td><td>' + (q.all ? Math.round(q.sold * 100 / q.all) : 0) + '%</td><td>' +
+           aed(Math.round(q.val)) + '</td><td>' + aed(Math.round(q.soldVal)) + '</td></tr>');
+  });
+  H.push('<tr class="tot"><td>ALL</td><td>' + t.all + '</td><td>' + t.avail + '</td><td>' + t.hold + '</td><td>' + t.memo +
+         '</td><td><b>' + t.sold + '</b></td><td>' + (t.all ? Math.round(t.sold * 100 / t.all) : 0) + '%</td><td>' +
+         aed(Math.round(t.val)) + '</td><td>' + aed(Math.round(t.soldVal)) + '</td></tr></tbody></table>');
+  return H.join("");
+}
+/* owner x category counts of one kind ("sold" or "inn") */
+function ownerCatHtml(d, key, title) {
+  var H = ['<h4>' + title + '</h4><table class="tally-t"><thead><tr><th>OWNER</th>'];
+  d.cats.forEach(function (c) { H.push('<th>' + esc(c) + '</th>'); });
+  H.push('<th>TOTAL</th></tr></thead><tbody>');
+  var colTot = {}, grand = 0;
+  d.owners.forEach(function (o) {
+    var rowT = 0; H.push('<tr><td><span class="badge ' + ownerCls(o) + '">' + esc(o) + '</span></td>');
+    d.cats.forEach(function (c) {
+      var v = (d.m[o + "|" + c] || {})[key] || 0; rowT += v; colTot[c] = (colTot[c] || 0) + v;
+      H.push('<td>' + (v || "&ndash;") + '</td>');
+    });
+    grand += rowT; H.push('<td><b>' + rowT + '</b></td></tr>');
+  });
+  H.push('<tr class="tot"><td>ALL</td>');
+  d.cats.forEach(function (c) { H.push('<td>' + (colTot[c] || 0) + '</td>'); });
+  H.push('<td><b>' + grand + '</b></td></tr></tbody></table>');
+  return H.join("");
 }
 var tallyScope = "all";
 function tallyList() {
@@ -1340,6 +1379,8 @@ function renderTally() {
          '</td><td>' + tot.sold + '</td><td><b>' + (tot.all - tot.sold) + '</b></td><td>' + tot.ct.toFixed(2) +
          '</td><td>' + tot.gw.toFixed(2) + '</td><td>' + tot.nw.toFixed(2) + '</td><td>' + aed(Math.round(tot.val)) +
          '</td><td>' + aed(Math.round(tot.soldVal)) + '</td></tr></tbody></table>');
+  H.push(catStatusHtml(d));
+  H.push(ownerCatHtml(d, "sold", "SOLD BY CATEGORY"));
   H.push('<h4>IN STOCK BY CATEGORY <small>(pieces not sold)</small></h4><table class="tally-t"><thead><tr><th>OWNER</th>');
   d.cats.forEach(function (c) { H.push('<th>' + esc(c) + '</th>'); });
   H.push('<th>TOTAL</th></tr></thead><tbody>');
@@ -1389,7 +1430,7 @@ function tallySheet(wb, list) {
   ws.addRow([list.length + " pieces - " + new Date().toLocaleString("en-GB", { timeZone: "Asia/Dubai" }) + " (Dubai)"]);
   ws.addRow([]);
   ws.addRow(["OWNER", "TOTAL", "AVAILABLE", "HOLD", "MEMO OUT", "SOLD", "IN STOCK", "IN-STOCK DIA CT",
-             "IN-STOCK GROSS WT (g)", "IN-STOCK NET WT (g)", "IN-STOCK VALUE (AED)", "SOLD VALUE (AED)"]);
+             "IN-STOCK GROSS WT (g)", "IN-STOCK NET WT (g)", "IN-STOCK VALUE (" + DISP + ")", "SOLD VALUE (" + DISP + ")"]);
   d.owners.forEach(function (o) {
     var s = d.sum[o];
     ws.addRow([o, s.all, s.avail, s.hold, s.memo, s.sold, s.all - s.sold, +s.ct.toFixed(2), +s.gw.toFixed(2),
@@ -1417,6 +1458,20 @@ function tallySheet(wb, list) {
     t2.getCell(c).value = { formula: "SUM(" + L + first + ":" + L + lastRow + ")" };
   }
   t2.font = { bold: true, name: "Arial" };
+  ws.addRow([]);
+  var h3 = ws.addRow(["STATUS BY CATEGORY", "TOTAL", "AVAILABLE", "HOLD", "MEMO OUT", "SOLD", "SOLD %", "IN-STOCK VALUE (" + DISP + ")", "SOLD VALUE (" + DISP + ")"]);
+  h3.font = { bold: true, name: "Arial" };
+  d.cats.forEach(function (c) {
+    var q = d.cs[c];
+    ws.addRow([c, q.all, q.avail, q.hold, q.memo, q.sold, q.all ? Math.round(q.sold * 100 / q.all) + "%" : "0%", Math.round(q.val), Math.round(q.soldVal)]);
+  });
+  ws.addRow([]);
+  var h4 = ws.addRow(["SOLD BY CATEGORY"].concat(d.cats).concat(["TOTAL"]));
+  h4.font = { bold: true, name: "Arial" };
+  d.owners.forEach(function (o) {
+    var vals = d.cats.map(function (c) { return (d.m[o + "|" + c] || {}).sold || 0; });
+    ws.addRow([o].concat(vals).concat([vals.reduce(function (a, b) { return a + b; }, 0)]));
+  });
   ws.getCell("A1").font = { bold: true, size: 13, name: "Arial", color: { argb: "FF0F4040" } };
   [11, 12].forEach(function (c) { ws.getColumn(c).numFmt = "#,##0"; });
   [8, 9, 10].forEach(function (c) { ws.getColumn(c).numFmt = "0.00"; });
@@ -1814,13 +1869,56 @@ function allSales() {
   return out;
 }
 
+function saleCat(x) { var p = bySku(x.sku); return (x.category || (p && p.CATEGORY) || "OTHER").toUpperCase(); }
+var CAT_ORDER = ["RING", "EARRING", "BRACELET", "ETERNITY BAND", "NECKLACE", "PENDANT", "BANGLE", "CHAIN"];
+function catSort(a, b) { return (CAT_ORDER.indexOf(a) + 99) % 99 - (CAT_ORDER.indexOf(b) + 99) % 99 || (a < b ? -1 : 1); }
+var PAY_ORDER = ["CASH", "CARD", "BANK"];
+function payKeys(m) {
+  return PAY_ORDER.filter(function (k) { return m[k]; }).concat(Object.keys(m).filter(function (k) { return PAY_ORDER.indexOf(k) < 0; }).sort());
+}
+/* one row per day: pieces per category and per payment, and the amounts */
+function dailyRows(live) {
+  var days = {}, cats = [], pays = [];
+  live.forEach(function (x) {
+    var d = x.date || "?", c = saleCat(x), y = x.payment || "?";
+    var r = days[d] = days[d] || { day: d, list: [], cat: {}, pay: {} };
+    r.list.push(x); r.cat[c] = (r.cat[c] || 0) + 1; r.pay[y] = (r.pay[y] || 0) + 1;
+    if (cats.indexOf(c) < 0) cats.push(c);
+    if (pays.indexOf(y) < 0) pays.push(y);
+  });
+  cats.sort(catSort);
+  var pm = {}; pays.forEach(function (y) { pm[y] = 1; });
+  return { rows: Object.keys(days).sort().map(function (d) { days[d].t = tallyOf(days[d].list); return days[d]; }),
+           cats: cats, pays: payKeys(pm) };
+}
+function dailyHtml(live) {
+  var D = dailyRows(live);
+  if (!D.rows.length) return "";
+  var today = dubaiToday(), tot = { cat: {}, pay: {} };
+  var H = ['<div class="sp-daily"><span>DAY BY DAY</span><div class="sp-daily-x"><table class="tally-t"><thead><tr><th>DAY</th>'];
+  D.cats.forEach(function (c) { H.push('<th>' + esc(c) + '</th>'); });
+  D.pays.forEach(function (y, i) { H.push('<th class="' + (i ? "" : "sp-gap") + '">' + esc(y) + '</th>'); });
+  H.push('<th class="sp-gap">PIECES</th><th>TAKEN</th></tr></thead><tbody>');
+  D.rows.forEach(function (r) {
+    H.push('<tr' + (r.day === salesDay ? ' class="is-day"' : "") + '><td>' + esc(r.day === today ? "TODAY" : prettyDay(r.day)) + '</td>');
+    D.cats.forEach(function (c) { tot.cat[c] = (tot.cat[c] || 0) + (r.cat[c] || 0); H.push('<td>' + (r.cat[c] || "&ndash;") + '</td>'); });
+    D.pays.forEach(function (y, i) { tot.pay[y] = (tot.pay[y] || 0) + (r.pay[y] || 0); H.push('<td class="' + (i ? "" : "sp-gap") + '">' + (r.pay[y] || "&ndash;") + '</td>'); });
+    H.push('<td class="sp-gap"><b>' + r.t.n + '</b></td><td>' + esc(amounts(r.t)) + '</td></tr>');
+  });
+  var all = tallyOf(live);
+  H.push('<tr class="tot"><td>ALL DAYS</td>');
+  D.cats.forEach(function (c) { H.push('<td>' + tot.cat[c] + '</td>'); });
+  D.pays.forEach(function (y, i) { H.push('<td class="' + (i ? "" : "sp-gap") + '">' + tot.pay[y] + '</td>'); });
+  H.push('<td class="sp-gap"><b>' + all.n + '</b></td><td>' + esc(amounts(all)) + '</td></tr></tbody></table></div></div>');
+  return H.join("");
+}
 /* totals kept per currency: {n, cur: {AED: 1200, BHD: 300, ...}} */
 function tallyOf(list) {
-  var t = { n: 0, cur: {}, pay: {}, by: {}, curs: [] };
+  var t = { n: 0, cur: {}, pay: {}, by: {}, cat: {}, curs: [] };
   function add(o, x) { var c = x.currency || "AED"; o.cur[c] = (o.cur[c] || 0) + (x.price || 0); if (t.curs.indexOf(c) < 0) t.curs.push(c); }
   list.forEach(function (x) {
     t.n++; add(t, x);
-    [["pay", x.payment || "?"], ["by", x.by || "?"]].forEach(function (k) {
+    [["pay", x.payment || "?"], ["by", x.by || "?"], ["cat", saleCat(x)]].forEach(function (k) {
       var m = t[k[0]], key = k[1];
       m[key] = m[key] || { n: 0, cur: {} };
       m[key].n++; add(m[key], x);
@@ -1875,9 +1973,10 @@ function renderSales() {
     tile("SOLD · HOLD · MEMO", sc.SOLD + " · " + sc.HOLD + " · " + sc["MEMO OUT"]);
 
   $("#spBreak").innerHTML =
-    breakdown("BY PAYMENT", ["CASH", "CARD", "BANK"].filter(function (k) { return t.pay[k]; })
-      .map(function (k) { return [k, t.pay[k]]; })) +
-    breakdown("BY PERSON", Object.keys(t.by).sort().map(function (k) { return [k, t.by[k]]; }));
+    breakdown("BY CATEGORY", Object.keys(t.cat).sort(catSort).map(function (k) { return [k, t.cat[k]]; })) +
+    breakdown("BY PAYMENT", payKeys(t.pay).map(function (k) { return [k, t.pay[k]]; })) +
+    breakdown("BY PERSON", Object.keys(t.by).sort().map(function (k) { return [k, t.by[k]]; })) +
+    dailyHtml(live);
 
   var ref = $("#spRefused");
   ref.hidden = !refused.length;
@@ -1966,9 +2065,12 @@ function exportSales() {
   var vals = function (v) { return cs.map(function (c) { return (v && v.cur[c]) || 0; }); };
   s0.addRow(["", "PIECES"].concat(cs)); hdr(s0, 4);
   s0.addRow(["SOLD", t.n].concat(vals(t)));
-  ["CASH", "CARD", "BANK"].forEach(function (k) {
+  PAY_ORDER.concat(payKeys(t.pay)).filter(function (k, i, a) { return a.indexOf(k) === i; }).forEach(function (k) {
     var v = t.pay[k]; s0.addRow(["  " + k, v ? v.n : 0].concat(vals(v)));
   });
+  s0.addRow([]);
+  s0.addRow(["BY CATEGORY", "PIECES"].concat(cs)); hdr(s0, s0.rowCount);
+  Object.keys(t.cat).sort(catSort).forEach(function (k) { var v = t.cat[k]; s0.addRow([k, v.n].concat(vals(v))); });
   s0.addRow([]);
   s0.addRow(["BY PERSON", "PIECES"].concat(cs)); hdr(s0, s0.rowCount);
   Object.keys(t.by).sort().forEach(function (k) { var v = t.by[k]; s0.addRow([k, v.n].concat(vals(v))); });
@@ -1980,6 +2082,26 @@ function exportSales() {
   s0.views = [];
   s0.getCell("A1").font = { bold: true, size: 13, name: "Arial", color: { argb: "FF0F4040" } };
   widths(s0);
+
+  /* every day of the show, whatever day is picked on screen */
+  var D = dailyRows(every.filter(function (x) { return x.status !== "CANCELLED"; }));
+  if (D.rows.length) {
+    var dc = []; D.rows.forEach(function (r) { r.t.curs.forEach(function (c) { if (dc.indexOf(c) < 0) dc.push(c); }); });
+    var sd = wb.addWorksheet("DAY BY DAY");
+    sd.addRow(["DATE"].concat(D.cats).concat(D.pays).concat(["PIECES"]).concat(dc)); hdr(sd, 1);
+    D.rows.forEach(function (r) {
+      sd.addRow([r.day].concat(D.cats.map(function (c) { return r.cat[c] || 0; }))
+        .concat(D.pays.map(function (y) { return r.pay[y] || 0; })).concat([r.t.n])
+        .concat(dc.map(function (c) { return r.t.cur[c] || 0; })));
+    });
+    var n0 = D.rows.length + 1, tr = sd.addRow(["TOTAL"]);
+    for (var ci = 2; ci <= D.cats.length + D.pays.length + 2 + dc.length; ci++) {
+      var col = sd.getColumn(ci).letter;
+      tr.getCell(ci).value = { formula: "SUM(" + col + "2:" + col + n0 + ")" };
+    }
+    tr.font = { bold: true, name: "Arial" };
+    widths(sd);
+  }
 
   var s1 = wb.addWorksheet("SALES");
   s1.addRow(["DATE", "TIME", "SKU", "CATEGORY", "DESCRIPTION", "CLIENT", "PHONE", "PRICE", "CURRENCY",

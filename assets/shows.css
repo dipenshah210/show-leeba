@@ -511,7 +511,15 @@ h2,h3{margin:0;font-weight:800;letter-spacing:.02em}
 .sp-tile span{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--ink-3)}
 .sp-tile b{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--teal-x);word-break:break-word}
 .sp-tile small{font-size:11px;color:var(--ink-3);font-weight:700}
-.sp-breaks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.sp-breaks{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.sp-daily{grid-column:1/-1;border:1px solid var(--line-2);background:#fff}
+.sp-daily>span{display:block;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--ink-3);padding:8px 10px 6px}
+.sp-daily-x{overflow-x:auto}
+.sp-daily .tally-t td,.sp-daily .tally-t th{text-align:center}
+.sp-daily .tally-t td:first-child,.sp-daily .tally-t th:first-child{text-align:left;white-space:nowrap}
+.sp-daily .tally-t td:last-child,.sp-daily .tally-t th:last-child{text-align:right;white-space:nowrap}
+.sp-daily .sp-gap{border-left:2px solid var(--line-2)}
+.sp-daily tr.is-day td{background:rgba(43,173,165,.13);font-weight:700}
 .sp-break{border:1px solid var(--line-2);background:#fff}
 .sp-break>span{display:block;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--ink-3);padding:8px 10px 4px}
 .sp-break div{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:6px 10px;border-top:1px solid var(--line-2);font-size:12px;align-items:baseline}
