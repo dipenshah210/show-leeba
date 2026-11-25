@@ -6,7 +6,7 @@
 <title>LEEBA — Jewellery Arabia Bahrain</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="preconnect" href="https://wsrv.nl" crossorigin>
-<link rel="stylesheet" href="assets/shows.css?v=202611251700">
+<link rel="stylesheet" href="assets/shows.css?v=202611260200">
 </head>
 <body>
 
@@ -301,6 +301,18 @@
         <div class="sp-refused" id="spRefused" hidden></div>
         <div class="sp-tiles" id="spTiles"></div>
         <div class="sp-breaks" id="spBreak"></div>
+        <div class="sp-tools">
+          <input type="search" id="spQ" placeholder="Search client, barcode, phone, remark" autocomplete="off">
+          <select id="spCat"></select><select id="spPay"></select><select id="spBy"></select>
+          <select id="spSort">
+            <option value="new">NEWEST FIRST</option><option value="old">OLDEST FIRST</option>
+            <option value="hi">PRICE HIGH-LOW</option><option value="lo">PRICE LOW-HIGH</option>
+            <option value="cat">CATEGORY</option><option value="pay">PAYMENT</option>
+            <option value="by">SOLD BY</option><option value="client">CLIENT A-Z</option><option value="sku">BARCODE</option>
+          </select>
+          <button class="btn btn-ghost" id="spClear" hidden>CLEAR</button>
+          <span class="sp-count" id="spCount"></span>
+        </div>
         <div class="tbl-wrap"><table class="dna sp-table" id="spTable"></table></div>
         <div class="sp-cancelled" id="spCancelled"></div>
       </div>
@@ -319,8 +331,8 @@
 
 <!-- shipped with the site so exports still work when the hall wifi drops -->
 <script src="assets/exceljs.min.js"></script>
-<script src="config.js?v=202611251700"></script>
-<script src="assets/shows.js?v=202611251700"></script>
+<script src="config.js?v=202611260200"></script>
+<script src="assets/shows.js?v=202611260200"></script>
 
 </body>
 </html>

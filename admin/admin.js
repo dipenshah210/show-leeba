@@ -17,6 +17,11 @@ var API = (function () {
 var SITE = location.origin + location.pathname.replace(/admin\/?(index\.html)?$/, "");
 var REPO_TREE = "https://api.github.com/repos/" + (CFG.SITE_REPO || "dipenshah210/show-leeba") + "/git/trees/main?recursive=1";
 var RATES = { AED: 1, USD: 3.6725, BHD: 9.7406, SAR: 0.9793, QAR: 1.0089, OMR: 9.5389, KWD: 11.95, HKD: 0.4708, EUR: 4.0, GBP: 4.7, INR: 0.0435 };
+/* venue time zones: sales are timed in the venue's local time */
+var ZONES = [["Asia/Dubai", "UAE (Dubai, Abu Dhabi, Sharjah)"], ["Asia/Bahrain", "Bahrain"], ["Asia/Riyadh", "Saudi Arabia"], ["Asia/Qatar", "Qatar"],
+             ["Asia/Kuwait", "Kuwait"], ["Asia/Muscat", "Oman"], ["Asia/Hong_Kong", "Hong Kong"], ["Asia/Kolkata", "India"], ["Asia/Singapore", "Singapore"],
+             ["Asia/Bangkok", "Thailand"], ["Europe/Istanbul", "Turkey"], ["Europe/London", "UK"], ["America/New_York", "USA (New York)"], ["America/Los_Angeles", "USA (Las Vegas)"]];
+function zoneFor(cur) { return { BHD: "Asia/Bahrain", SAR: "Asia/Riyadh", QAR: "Asia/Qatar", KWD: "Asia/Kuwait", OMR: "Asia/Muscat", HKD: "Asia/Hong_Kong", INR: "Asia/Kolkata", GBP: "Europe/London" }[cur] || "Asia/Dubai"; }
 var ORDER = ["RING", "EARRING", "BRACELET", "ETERNITY BAND", "NECKLACE", "PENDANT", "BANGLE", "CHAIN"];
 
 var me = null, shows = [], cache = {};
@@ -569,6 +574,7 @@ function viewNew(tag) {
       '<label>SHORT CODE <em>for files and tabs</em><input id="sTag" value="' + esc(S.tag || "") + '"' + (base ? " disabled" : "") + '></label>' +
       '<label>LOCAL CURRENCY<select id="sCur">' + Object.keys(RATES).map(function (c) { return '<option' + (c === S.currency ? " selected" : "") + '>' + c + '</option>'; }).join("") + '</select></label>' +
       '<label>SHOW PRICES IN<select id="sDisp">' + ["AUTO", "AED", "USD", "BHD", "SAR", "QAR", "OMR", "KWD"].map(function (c) { return '<option' + (c === (S.display || "AUTO") ? " selected" : "") + '>' + c + '</option>'; }).join("") + '</select></label>' +
+      '<label>VENUE TIME ZONE<select id="sTz">' + ZONES.map(function (z) { return '<option value="' + z[0] + '"' + (z[0] === (S.tz || zoneFor(S.currency)) ? " selected" : "") + '>' + z[1] + '</option>'; }).join("") + '</select></label>' +
       '<label>AED PER USD<input id="sRate" type="number" step="0.0001" value="' + esc(S.rate) + '"></label>' +
       '<label style="grid-column:1/-1">NOTES <em>optional</em><input id="sNotes" value="' + esc(S.notes || "") + '" placeholder="Booth number, team, anything to remember"></label>' +
     '</div></div></section>' +
@@ -722,7 +728,7 @@ function readShowForm() {
   var S = W.show;
   S.name = $("#sName").value.trim(); S.venue = $("#sVenue").value.trim(); S.city = $("#sCity").value.trim();
   S.start = $("#sStart").value; S.end = $("#sEnd").value; S.tag = up($("#sTag").value).replace(/[^A-Z0-9-]+/g, "-");
-  S.currency = $("#sCur").value; S.display = $("#sDisp").value === "AUTO" ? "" : $("#sDisp").value; S.rate = parseFloat($("#sRate").value) || 3.6725; S.notes = $("#sNotes").value.trim();
+  S.currency = $("#sCur").value; S.display = $("#sDisp").value === "AUTO" ? "" : $("#sDisp").value; S.tz = $("#sTz").value; S.rate = parseFloat($("#sRate").value) || 3.6725; S.notes = $("#sNotes").value.trim();
   var d1 = S.start ? new Date(S.start + "T12:00:00") : null, d2 = S.end ? new Date(S.end + "T12:00:00") : null;
   var fmt = function (d, o) { return d.toLocaleDateString("en-GB", o); };
   S.dates = d1 ? fmt(d1, { day: "numeric", month: "long", year: "numeric" }) + (d2 ? " – " + fmt(d2, { day: "numeric", month: "long", year: "numeric" }) : "") : "";

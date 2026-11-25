@@ -443,6 +443,8 @@ function build(opts) {
                      (AED, BHD, SAR ...); in dollars elsewhere (Hong Kong), where the local
                      currency is still taken at the sale form */
                   displayCurrency: sh.display || (DISPLAYABLE.indexOf(sh.currency || "AED") >= 0 ? (sh.currency || "AED") : "USD"),
+                  timeZone: sh.tz || undefined,
+                  tzName: sh.tz ? sh.tz.split("/").pop().replace(/_/g, " ") : undefined,
                   saleCurrencies: DISPLAYABLE.indexOf(sh.currency || "AED") >= 0 ? undefined : ["USD", sh.currency, "AED"],
                   built: new Date().toISOString().slice(0, 16).replace("T", " "), count: products.length,
                   products: products.map(function (p) { var o = Object.assign({}, p); delete o._how; delete o._owner_how; return o; }) };
